@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Order #{{ order.id }} | Smart Drone Eats</title><link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}"></head>
+<body>
+<nav><div class="logo">🚁 Smart<span>Drone Eats</span></div><div class="nav-links"><a href="{{ url_for('home') }}">Home</a><a href="{{ url_for('home') }}#food">Food Menu</a></div></nav>
+<main class="order-page">
+    <div class="order-heading"><div class="tag">ORDER CONFIRMED</div><h1>Thank you, {{ order.customer }}!</h1><p>Your order has been saved successfully.</p></div>
+    {% with messages = get_flashed_messages(with_categories=true) %}{% if messages %}<div class="flash-list">{% for category, message in messages %}<p class="flash {{ category }}">{{ message }}</p>{% endfor %}</div>{% endif %}{% endwith %}
+    <div class="order-layout">
+        <section class="panel"><h2>Order #{{ order.id }}</h2><p><strong>Restaurant:</strong> {{ order.restaurant_name }}</p><p><strong>Delivery address:</strong> {{ order.address }}</p><p><strong>Order time:</strong> {{ order.created_at }}</p><hr>
+        {% for item in order["items"] %}<div class="order-item"><span>{{ item.name }} × {{ item.quantity }}</span><strong>₹{{ item.subtotal }}</strong></div>{% endfor %}
+        <div class="order-item total-line"><span>Total</span><strong>₹{{ "%.2f"|format(order.total) }}</strong></div>
+        <p><strong>Total package weight:</strong> {{ order.total_weight_g }} g</p><p><strong>Selected demo drone:</strong> {{ order.drone_name }}</p><p><strong>Estimated demo route distance:</strong> {{ order.route_distance_km }} km</p>
+        
+<p><strong>Initial route distance:</strong>
+    {{ order.initial_route_distance_km if order.initial_route_distance_km is not none else 'Not available' }}{% if order.initial_route_distance_km is not none %} km{% endif %}
+</p>
+
+<p><strong>Optimized route distance:</strong>
+    {{ order.route_distance_km }} km
+</p>
+
+<p><strong>Distance saved by optimization:</strong>
+    {{ order.optimization_savings_km if order.optimization_savings_km is not none else 'Not available' }}{% if order.optimization_savings_km is not none %} km{% endif %}
+</p>
+        
+        <p><strong>Drone payload capacity:</strong>
+            {{ order.payload_capacity_g if order.payload_capacity_g is not none else 'Not available' }}{% if order.payload_capacity_g is not none %} g{% endif %}
+        </p>
+
+        <p><strong>Remaining payload capacity:</strong>
+            {{ order.payload_margin_g if order.payload_margin_g is not none else 'Not available' }}{% if order.payload_margin_g is not none %} g{% endif %}
+        </p>
+
+        <p><strong>Required round-trip distance:</strong>
+            {{ order.required_round_trip_km if order.required_round_trip_km is not none else 'Not available' }}{% if order.required_round_trip_km is not none %} km{% endif %}
+        </p>
+
+        <p><strong>Safe range limit (demo):</strong>
+            {{ order.safe_range_km if order.safe_range_km is not none else 'Not available' }}{% if order.safe_range_km is not none %} km{% endif %}
+        </p>
+
+        <p><strong>Starting battery level (demo):</strong>
+            {{ order.battery_start_percent if order.battery_start_percent is not none else 'Not available' }}{% if order.battery_start_percent is not none %} %{% endif %}
+        </p>
+
+        <p><strong>Minimum battery threshold:</strong>
+            {{ order.battery_minimum_percent if order.battery_minimum_percent is not none else 'Not available' }}{% if order.battery_minimum_percent is not none %} %{% endif %}
+        </p>
+
+        <p><strong>Battery margin above threshold:</strong>
+            {{ order.battery_margin_percent if order.battery_margin_percent is not none else 'Not available' }}{% if order.battery_margin_percent is not none %} %{% endif %}
+        </p>
+        </section>
+        <section class="panel"><h2>Delivery Progress</h2><p class="status-pill">{{ order.status }}</p><a class="btn" href="{{ url_for('track_order', order_id=order.id) }}">
+    Track My Drone </a><ol class="route-list">{% for point in order.route %}<li>{{ point }}</li>{% endfor %}</ol><p class="muted">The route uses sample waypoints and a simulated-annealing optimization demonstration. It is not live GPS navigation.</p>
+         <form class="status-form" action="{{ url_for('update_status', order_id=order.id) }}" method="post"><label for="status">Update demo status</label><select id="status" name="status">{% for status in statuses %}<option value="{{ status }}" {% if order.status == status %}selected{% endif %}>{{ status }}</option>{% endfor %}</select><button class="btn" type="submit">Save Status</button></form></section>
+    </div>
+    <section class="panel feedback-panel"><h2>Delivery Feedback</h2>{% if order.feedback %}<p>Thank you for your rating: <strong>{{ order.feedback }}/5</strong></p>{% if order.feedback_note %}<p>{{ order.feedback_note }}</p>{% endif %}{% else %}<form action="{{ url_for('feedback', order_id=order.id) }}" method="post"><label for="rating">Rate your experience</label><select id="rating" name="rating" required><option value="">Choose rating</option><option value="5">5 - Excellent</option><option value="4">4 - Very good</option><option value="3">3 - Good</option><option value="2">2 - Fair</option><option value="1">1 - Poor</option></select><label for="feedback_note">Comments (optional)</label><textarea id="feedback_note" name="feedback_note" maxlength="500" placeholder="Share your feedback"></textarea><button class="btn" type="submit">Submit Feedback</button></form>{% endif %}</section>
+    <a class="btn" href="{{ url_for('home') }}">← Back to Home</a>
+</main><footer><h3>🚁 Smart Drone Food Delivery</h3><p>Final-Year Project | AI-Based Route Optimization</p><p>© 2026 Smart Drone Food Delivery</p></footer>
+</body></html>

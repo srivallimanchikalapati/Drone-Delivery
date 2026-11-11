@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Drone Food Delivery</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<nav>
+    <div class="logo">🚁 Smart<span>Drone Eats</span></div>
+    <div class="nav-links">
+        <a href="#home">Home</a><a href="#features">Features</a><a href="#restaurants">Restaurants</a><a href="#food">Food</a><a href="#cart">Cart</a><a href="#checkout">Checkout</a>
+    </div>
+</nav>
+<section class="hero" id="home">
+    <div class="hero-content">
+        <div class="tag">🚀 THE FUTURE OF FOOD DELIVERY</div>
+        <h1>Smart Drone<br><span>Food Delivery</span></h1>
+        <p>Your favorite food, delivered smarter! Our intelligent system selects suitable drones, checks delivery safety, and optimizes routes using AI-based optimization algorithms.</p>
+        <a class="btn" href="#food">Explore Food →</a>
+    </div>
+</section>
+<section class="features" id="features">
+    <h2 class="section-title">Why Choose Smart Drone Delivery?</h2>
+    <div class="feature-grid">
+        <div class="feature-card"><div class="feature-icon">🚁</div><h3>Smart Drone Selection</h3><p>Checks package weight, drone payload, battery and range.</p></div>
+        <div class="feature-card"><div class="feature-icon">🧭</div><h3>Optimized Routes</h3><p>Uses a simulated-annealing metaheuristic to improve waypoint order.</p></div>
+        <div class="feature-card"><div class="feature-icon">📍</div><h3>Order Tracking</h3><p>Follow the simulated preparation and delivery stages.</p></div>
+    </div>
+</section>
+
+<section class="restaurant-section" id="restaurants">
+    <h2 class="section-title">Choose Your Restaurant</h2>
+    <p class="section-subtitle">Sample restaurant list for the Ongole project prototype.</p>
+    <div class="restaurant-grid">
+    {% for r in restaurants %}
+        <article class="restaurant-card">
+            <img src="{{ r.image }}" alt="{{ r.name }}" loading="lazy">
+            <div class="restaurant-info"><h3>{{ r.name }}</h3><p>{{ r.description }}</p><p class="muted">📍 {{ r.area }}</p>
+            <a class="btn small-btn" href="#food" onclick="selectRestaurant('{{ r.id }}'); return false;">View Menu</a></div>
+        </article>
+    {% endfor %}
+    </div>
+</section>
+
+<section class="food-section" id="food">
+    <h2 class="section-title">Our Food Menu</h2>
+    <p class="section-subtitle">Choose one restaurant per order. Food prices and weights are sample project data.</p>
+    <div class="restaurant-filter">
+        <label for="restaurant-filter">Restaurant menu:</label>
+        <select id="restaurant-filter" onchange="filterMenu(this.value)">
+            <option value="">All restaurants</option>
+            {% for r in restaurants %}<option value="{{ r.id }}" {% if selected_restaurant == r.id %}selected{% endif %}>{{ r.name }}</option>{% endfor %}
+        </select>
+    </div>
+    <div class="food-grid" id="food-grid">
+    {% for item in menu %}
+        {% set restaurant = (restaurants | selectattr('id', 'equalto', item.restaurant_id) | list | first) %}
+        <article class="food-card" data-restaurant="{{ item.restaurant_id }}">
+            <img src="{{ item.image }}" alt="{{ item.name }}" loading="lazy">
+            <div class="food-info"><span class="category">{{ item.category }}</span><h3>{{ item.name }}</h3><p class="muted">{{ restaurant.name }}</p>
+            <p class="weight">Approx. package weight: {{ item.weight }} g</p><div class="price">₹{{ item.price }}</div>
+            <button class="add-cart" type="button" onclick="addToCart('{{ item.id }}')">Add to Cart</button></div>
+        </article>
+    {% endfor %}
+    </div>
+</section>
+
+<section class="cart-section" id="cart">
+    <h2 class="section-title">Your Cart</h2>
+    <p class="section-subtitle">All items in one order must come from the same restaurant.</p>
+    <div id="cart-items"><p>Your cart is empty. Add food items above!</p></div>
+    <div class="cart-summary"><div id="cart-total">Total: ₹0</div><div id="cart-weight">Package weight: 0 g</div></div>
+    <p id="cart-warning" class="warning" role="status"></p>
+</section>
+
+<section class="checkout-section" id="checkout">
+    <h2 class="section-title">Delivery Details</h2>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}<div class="flash-list">{% for category, message in messages %}<p class="flash {{ category }}">{{ message }}</p>{% endfor %}</div>{% endif %}
+    {% endwith %}
+    <form id="order-form" action="{{ url_for('place_order') }}" method="post">
+        <input type="hidden" name="items_json" id="items-json" value="[]">
+        <input type="hidden" name="restaurant_id" id="restaurant-id" value="">
+        <label for="customer">Customer name</label><input id="customer" name="customer" required maxlength="100" placeholder="Enter your name">
+        <label for="phone">Phone number</label><input id="phone" name="phone" type="tel" required inputmode="numeric" pattern="[0-9]{10,13}" placeholder="10 to 13 digits">
+        <label for="address">Delivery address</label><textarea id="address" name="address" required maxlength="500" placeholder="Enter your complete delivery address"></textarea>
+        <label for="notes">Delivery instructions (optional)</label><textarea id="notes" name="notes" maxlength="500" placeholder="Landmark or other instructions"></textarea>
+        <button class="btn submit-btn" type="submit">Place Food Order</button>
+        <p class="muted form-note">This is a college project prototype. Drone routing and delivery status are simulated; no real drone is controlled.</p>
+    </form>
+</section>
+<footer><h3>🚁 Smart Drone Food Delivery</h3><p>Smarter routes. Better delivery. A smarter future.</p><p>Final-Year Project | Metaheuristic Route Optimization</p><p>© 2026 Smart Drone Food Delivery</p></footer>
+<script>
+const MENU = {{ menu|tojson }};
+const RESTAURANTS = {{ restaurants|tojson }};
+let cart = {};
+let activeRestaurant = "";
+
+function getItem(id) { return MENU.find(item => item.id === id); }
+function addToCart(id) {
+    const item = getItem(id);
+    if (!item) return;
+    if (activeRestaurant && activeRestaurant !== item.restaurant_id && Object.keys(cart).length) {
+        document.getElementById("cart-warning").textContent = "Your cart already contains items from another restaurant. Clear the cart before choosing a different restaurant.";
+        return;
+    }
+    activeRestaurant = item.restaurant_id;
+    if (!cart[id]) cart[id] = 0;
+    if (cart[id] >= 20) {
+        document.getElementById("cart-warning").textContent = "Maximum 20 units per menu item.";
+        return;
+    }
+    cart[id] += 1;
+    document.getElementById("cart-warning").textContent = "";
+    renderCart();
+}
+function changeQuantity(id, delta) {
+    if (!cart[id]) return;
+    cart[id] += delta;
+    if (cart[id] <= 0) delete cart[id];
+    if (!Object.keys(cart).length) activeRestaurant = "";
+    renderCart();
+}
+function clearCart() {
+    cart = {}; activeRestaurant = "";
+    document.getElementById("cart-warning").textContent = "";
+    renderCart();
+}
+function renderCart() {
+    const container = document.getElementById("cart-items");
+    const ids = Object.keys(cart);
+    let total = 0, weight = 0;
+    if (!ids.length) {
+        container.innerHTML = "<p>Your cart is empty. Add food items above!</p>";
+    } else {
+        container.innerHTML = ids.map(id => {
+            const item = getItem(id), qty = cart[id], subtotal = item.price * qty;
+            total += subtotal; weight += item.weight * qty;
+            return `<div class="cart-row"><div><strong>${item.name}</strong><br><span>₹${item.price} × ${qty} = ₹${subtotal}</span></div>
+                <div class="quantity"><button type="button" aria-label="Decrease quantity" onclick="changeQuantity('${id}',-1)">−</button><span>${qty}</span><button type="button" aria-label="Increase quantity" onclick="changeQuantity('${id}',1)">+</button></div></div>`;
+        }).join("") + '<button type="button" class="clear-cart" onclick="clearCart()">Clear cart</button>';
+    }
+    document.getElementById("cart-total").textContent = "Total: ₹" + total;
+    document.getElementById("cart-weight").textContent = "Package weight: " + weight + " g";
+    document.getElementById("items-json").value = JSON.stringify(ids.map(id => ({id:id, quantity:cart[id]})));
+    document.getElementById("restaurant-id").value = activeRestaurant;
+}
+function filterMenu(id) {
+    document.querySelectorAll(".food-card").forEach(card => {
+        card.style.display = (!id || card.dataset.restaurant === id) ? "" : "none";
+    });
+    document.getElementById("restaurant-filter").value = id;
+    document.getElementById("cart-warning").textContent = "";
+}
+function selectRestaurant(id) {
+    document.getElementById("restaurant-filter").value = id;
+    filterMenu(id);
+    document.getElementById("food").scrollIntoView({behavior:"smooth"});
+}
+document.getElementById("order-form").addEventListener("submit", function(event) {
+    if (!Object.keys(cart).length) {
+        event.preventDefault();
+        document.getElementById("cart-warning").textContent = "Please add at least one food item before placing your order.";
+        document.getElementById("cart").scrollIntoView({behavior:"smooth"});
+        return;
+    }
+    document.getElementById("items-json").value = JSON.stringify(Object.keys(cart).map(id => ({id:id, quantity:cart[id]})));
+    document.getElementById("restaurant-id").value = activeRestaurant;
+});
+const initialRestaurant = document.getElementById("restaurant-filter").value;
+filterMenu(initialRestaurant);
+renderCart();
+</script>
+</body>
+</html>
