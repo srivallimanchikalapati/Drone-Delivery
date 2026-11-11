@@ -1,3 +1,4 @@
+Available at your primary URL https://drone-delivery-rgvo.onrender.com
 # Smart Drone Food Delivery — Fresh Setup
 
 This is a beginner-friendly Flask + SQLite college project prototype.
